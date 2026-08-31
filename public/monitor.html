@@ -1,20 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor - Let's Play Together</title>
-</head>
-
-<body style="background:#090914;color:white;text-align:center;font-family:Arial;padding:40px">
-
-<h1>🖥️ Monitor</h1>
-
-<p>Game monitor yahan banega.</p>
-
-<button onclick="location.href='index.html'">
-    ← Home
-</button>
-
-</body>
-</html>
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitor</title><link rel="stylesheet" href="/style.css"></head>
+<body><main class="wrap">
+<div class="brand">🖥️ MONITOR</div>
+<div id="setup" class="panel"><input id="name" class="input" placeholder="Monitor name" value="Monitor"><button id="create" class="bigbtn alt">CREATE ROOM</button></div>
+<div id="room" class="hidden">
+<div class="panel"><div class="sub">ROOM CODE</div><div id="code" class="roomcode">------</div><div id="players" class="players"></div></div>
+<div class="panel"><h3>Choose Game</h3><div class="games">
+<button data-g="fight">🥊 Fight</button><button data-g="racing">🏎️ Racing</button><button data-g="football">⚽ Football</button><button data-g="space">🚀 Space</button><button data-g="runner">🏃 Runner</button>
+</div><br><button id="start" class="bigbtn alt">START GAME</button><button id="stop" class="bigbtn" style="margin-top:8px">STOP</button></div>
+<div class="canvasbox"><canvas id="game" width="1200" height="520"></canvas></div>
+</div><div id="toast" class="toast"></div></main>
+<script src="/socket.io/socket.io.js"></script><script>
+const s=io(),$=x=>document.getElementById(x),ctx=$("game").getContext("2d");let game="fight",state={players:[]};
+function toast(t){$("toast").textContent=t;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2000)}
+$("create").onclick=()=>s.emit("room:create",{name:$("name").value});
+s.on("room:created",d=>{$("setup").classList.add("hidden");$("room").classList.remove("hidden");$("code").textContent=d.code});
+document.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{game=b.dataset.g;document.querySelectorAll("[data-g]").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");s.emit("game:select",{game})});
+$("start").onclick=()=>s.emit("game:start",{game});
+$("stop").onclick=()=>s.emit("game:stop");
+s.on("room:update",d=>{if(d.code)$("code").textContent=d.code;$("players").innerHTML=d.players.filter(p=>p.num).map(p=>`<div class="player">P${p.num} ${p.name}</div>`).join("")});
+s.on("error:message",toast);s.on("game:state",d=>{state=d;draw()});
+function draw(){
+ ctx.fillStyle="#080a12";ctx.fillRect(0,0,1200,520);
+ ctx.fillStyle="white";ctx.font="bold 28px Arial";ctx.fillText("🎮 "+(state.game||"WAITING").toUpperCase(),25,40);
+ if(state.game==="fight")drawFight();else if(state.game==="racing")drawRace();else if(state.game==="football")drawFootball();else if(state.game==="space")drawSpace();else if(state.game==="runner")drawRunner();
+ state.players.forEach(p=>{ctx.fillStyle="white";ctx.font="16px Arial";ctx.fillText("P"+p.num+" "+p.name+"  "+p.score,25,80+p.num*22)});
+}
+function dot(p,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,22,0,7);ctx.fill()}
+function drawFight(){state.players.filter(p=>p.num).forEach((p,i)=>{dot(p,"hsl("+i*50+" 80% 55%)");ctx.fillStyle="red";ctx.fillRect(p.x-30,p.y-40,60*p.hp/100,6)})}
+function drawRace(){ctx.strokeStyle="#333";for(let y=70;y<450;y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1200,y);ctx.stroke()}state.players.filter(p=>p.num).forEach((p,i)=>{dot({x:80+p.x%1050,y:70+p.lane*55},"hsl("+i*50+" 80% 55%)")})}
+function drawFootball(){ctx.strokeStyle="#aaa";ctx.strokeRect(30,60,1140,420);dot(state.ball,"white");state.players.filter(p=>p.num).forEach((p,i)=>dot(p,"hsl("+i*50+" 80% 55%)"))}
+function drawSpace(){(state.enemies||[]).filter(e=>e.hp>0).forEach(e=>dot(e,"red"));(state.bullets||[]).forEach(b=>dot(b,"yellow"));state.players.filter(p=>p.num).forEach((p,i)=>dot(p,"hsl("+i*50+" 80% 55%)"))}
+function drawRunner(){state.players.filter(p=>p.num).forEach((p,i)=>dot({x:100+p.lane*100,y:430-p.y},"hsl("+i*50+" 80% 55%)"));(state.obs||[]).forEach(o=>{ctx.fillStyle="red";ctx.fillRect(700-(o.x%900),420-o.lane*100,30,30)})}
+draw();
+</script></body></html>

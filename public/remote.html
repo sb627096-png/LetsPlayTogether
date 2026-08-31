@@ -1,20 +1,23 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remote - Let's Play Together</title>
-</head>
-
-<body style="background:#090914;color:white;text-align:center;font-family:Arial;padding:40px">
-
-<h1>📱 Remote</h1>
-
-<p>Remote controller yahan banega.</p>
-
-<button onclick="location.href='index.html'">
-    ← Home
-</button>
-
-</body>
-</html>
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Remote</title><link rel="stylesheet" href="/style.css"></head>
+<body><main class="wrap">
+<div class="brand">📱 REMOTE</div>
+<div id="join" class="panel"><h2>Join Room</h2><input id="name" class="input" placeholder="Your name"><input id="code" class="input" maxlength="6" placeholder="ROOM CODE" style="text-transform:uppercase"><button id="join" class="bigbtn alt">JOIN ROOM</button></div>
+<div id="connected" class="hidden"><div class="panel"><h2 id="who">Connected</h2><div id="game" class="pill">Waiting...</div></div>
+<div class="panel"><div class="ctrl">
+<button data-a="up">▲</button><button data-a="action">●</button><button data-a="left">◀</button>
+<button data-a="down">▼</button><button data-a="right">▶</button><button data-a="jump">JUMP</button>
+<button data-a="attack" class="action wide">🥊 ATTACK / ACTION</button>
+</div></div></div><div id="toast" class="toast"></div></main>
+<script src="/socket.io/socket.io.js"></script><script>
+const s=io(),$=x=>document.getElementById(x);let joined=false;
+function toast(t){$("toast").textContent=t;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2000)}
+$("join").onclick=()=>s.emit("room:join",{name:$("name").value,code:$("code").value.toUpperCase()});
+s.on("room:joined",d=>{joined=true;$("join").parentElement.classList.add("hidden");$("connected").classList.remove("hidden");$("who").textContent="🎮 Player "+d.num});
+s.on("room:update",d=>{$("game").textContent=d.started?"🎮 "+d.game.toUpperCase():"⏳ Waiting for monitor..."});
+s.on("error:message",toast);
+s.on("room:closed",()=>{toast("Room closed");setTimeout(()=>location.reload(),1000)});
+document.querySelectorAll("[data-a]").forEach(b=>{
+ const send=e=>{e.preventDefault();if(joined)s.emit("control",{action:b.dataset.a})};
+ b.addEventListener("pointerdown",send);b.addEventListener("touchstart",send,{passive:false});
+});
+</script></body></html>
